@@ -15,6 +15,7 @@ royal-care-clinic/
 │   ├── enums.py              # status / role enumerations
 │   ├── exceptions.py         # custom exception hierarchy
 │   ├── utils.py              # ID generator, money helpers, dates
+│   ├── hours.py              # WeeklyHours (operating / working hours)
 │   ├── clinic.py             # Clinic, Department, Laboratory, Pharmacy, ...
 │   ├── people.py             # Person, Patient, Staff, Doctor, Nurse, ...
 │   ├── accounts.py           # UserAccount (patient login)
@@ -23,12 +24,14 @@ royal-care-clinic/
 │   ├── prescriptions.py      # Medication, Prescription, PrescriptionItem
 │   ├── lab.py                # LabTest, LabOrder, LabResult
 │   ├── billing.py            # Invoice, InsurancePolicy, Payment subclasses
-│   └── formatting.py         # console output helpers
+│   ├── formatting.py         # console output helpers
+│   └── sample_data.py        # builds the sample Royal Care Clinic
 ├── tests/
 │   └── test_clinic_system.py # unit + scenario tests
 ├── docs/
-│   ├── uml_class_diagram.mmd # UML source (Mermaid)
-│   └── uml_class_diagram.png # rendered diagram
+│   ├── uml_class_diagram.puml # UML source (PlantUML)
+│   ├── uml_class_diagram.png  # rendered diagram
+│   └── uml_class_diagram.svg  # scalable version
 └── main.py                   # end-to-end demonstration
 ```
 
@@ -38,3 +41,22 @@ royal-care-clinic/
 python main.py                                   # run the demonstration
 python -m unittest discover -s tests -v          # run all tests
 ```
+
+## Regenerating the UML diagram
+
+```bash
+java -jar plantuml.jar -tpng docs/uml_class_diagram.puml
+```
+
+## Features
+
+| Area | What it does |
+|------|--------------|
+| Clinic information | Profile, contact details, departments with operating hours (add / update / retrieve) |
+| Patients | Self-registration with hashed password, profile updates, allergies, insurance, visit-summary download |
+| Doctors & staff | Doctor, Nurse, Lab Technician and Pharmacist roles with qualifications and working hours |
+| Scheduling | Search free slots by date, doctor or speciality; book, reschedule and cancel |
+| EMR | Visits with notes, vitals, diagnoses, attachments, prescriptions and lab orders; access control |
+| Prescriptions | Drug, dosage and directions; allergy check; sent to pharmacy and dispensed |
+| Laboratory | Order lifecycle ORDERED -> SAMPLE_COLLECTED -> COMPLETED; results checked against patient and visit |
+| Billing | Invoice per visit, insurance coverage with co-pay and annual limit, card / mobile wallet / insurance claim payments |

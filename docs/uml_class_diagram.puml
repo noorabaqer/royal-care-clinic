@@ -1,0 +1,486 @@
+@startuml uml_class_diagram
+' =====================================================================
+'  Royal Care Clinic Management System - UML Class Diagram
+'  Render with:  java -jar plantuml.jar -tpng docs/uml_class_diagram.puml
+'  Visibility:  - private   + public   # protected
+' =====================================================================
+title Royal Care Clinic Management System - UML Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam packageStyle rectangle
+skinparam nodesep 40
+skinparam ranksep 60
+skinparam class {
+  BackgroundColor #FDFDFD
+  BorderColor #3A4A5C
+  ArrowColor #3A4A5C
+  HeaderBackgroundColor #DCE6F2
+}
+skinparam package {
+  BackgroundColor #F6F8FB
+  BorderColor #9AA8B8
+}
+hide empty members
+
+' ============================ Clinic ================================
+package "clinic.py / hours.py" as PClinic {
+  class Clinic {
+    - name : str
+    - address : Address
+    - contact : ContactInfo
+    - departments : dict[str, Department]
+    - staff : dict[str, Staff]
+    - patients : dict[str, Patient]
+    + scheduler : AppointmentScheduler
+    + billing : BillingService
+    + update_info(**changes) : None
+    + get_info() : dict
+    + add_department(dept : Department) : Department
+    + update_department(name, **changes) : Department
+    + add_staff(member : Staff, dept_name : str) : Staff
+    + doctors(speciality : str) : list[Doctor]
+    + register_patient(...) : Patient
+    + login(username, password) : Patient
+  }
+  class Address {
+    + street : str
+    + city : str
+    + country : str
+    + postal_code : str
+  }
+  class ContactInfo {
+    + phone_numbers : list[str]
+    + email : str
+    + website : str
+  }
+  class Department {
+    - name : str
+    + description : str
+    + location : str
+    + phone : str
+    + operating_hours : WeeklyHours
+    - staff : list[Staff]
+    + add_staff(member : Staff) : None
+    + remove_staff(member : Staff) : None
+  }
+  class Laboratory {
+    - test_catalogue : dict[str, LabTest]
+    - orders : list[LabOrder]
+    + add_test(test : LabTest) : None
+    + get_test(code : str) : LabTest
+    + receive_order(order : LabOrder) : None
+    + pending_orders() : list[LabOrder]
+  }
+  class Pharmacy {
+    - formulary : dict[str, Medication]
+    - received : list[Prescription]
+    + add_medication(med : Medication) : None
+    + get_medication(name : str) : Medication
+    + receive_prescription(rx : Prescription) : None
+  }
+  class WeeklyHours {
+    - hours : dict[int, tuple[time, time]]
+    + set_day(weekday, start, end) : None
+    + hours_for(weekday : int) : tuple
+    + covers(start, end : datetime) : bool
+    + describe() : list[str]
+  }
+}
+
+' ============================ People ================================
+package "people.py / accounts.py" as PPeople {
+  abstract class Person {
+    - person_id : str
+    - first_name : str
+    - last_name : str
+    - date_of_birth : date
+    - email : str
+    + phone : str
+    + address : Address
+    + full_name() : str
+    + age(on : date) : int
+    + {abstract} role_description() : str
+  }
+  class Patient {
+    + emergency_contact : EmergencyContact
+    + insurance : InsurancePolicy
+    - allergies : list[str]
+    + medical_history_summary : str
+    + account : UserAccount
+    - medical_record : MedicalRecord
+    + update_profile(**changes) : None
+    + is_allergic_to(substance : str) : bool
+    + upcoming_appointments(s : AppointmentScheduler) : list[Appointment]
+    + download_visit_summary(visit_id : str) : Path
+  }
+  class EmergencyContact {
+    + name : str
+    + relationship : str
+    + phone : str
+  }
+  class UserAccount {
+    - username : str
+    - salt : bytes
+    - password_hash : bytes
+    + is_active : bool
+    + verify_password(password : str) : bool
+    + change_password(old, new : str) : None
+  }
+  class Staff {
+    - role : StaffRole
+    + qualifications : list[str]
+    + working_hours : WeeklyHours
+    + department : Department
+    + is_working(start, end : datetime) : bool
+  }
+  class Doctor {
+    + speciality : str
+    - license_number : str
+    + consultation_fee : Decimal
+    + start_visit(a : Appointment) : Visit
+    + prescribe(v : Visit, items) : Prescription
+    + order_lab_test(v : Visit, t : LabTest, lab) : LabOrder
+  }
+  class Nurse {
+    + record_vitals(v : Visit, vitals : Vitals) : None
+  }
+  class LabTechnician {
+    + collect_sample(o : LabOrder) : None
+    + upload_result(o, patient, visit_id, values, ...) : LabResult
+  }
+  class Pharmacist {
+    + dispense(rx : Prescription) : None
+  }
+}
+
+' =========================== Scheduling =============================
+package "scheduling.py" as PSched {
+  class AppointmentScheduler {
+    - clinic : Clinic
+    - appointments : dict[str, Appointment]
+    + search_available_slots(date, doctor, speciality, minutes) : list[AvailableSlot]
+    + book(patient, doctor, start, minutes, reason) : Appointment
+    + reschedule(appointment_id, new_start) : Appointment
+    + cancel(appointment_id, reason) : Appointment
+    + appointments_for_patient(p : Patient) : list[Appointment]
+  }
+  class Appointment {
+    - appointment_id : str
+    - patient : Patient
+    - doctor : Doctor
+    - slot : TimeSlot
+    - status : AppointmentStatus
+    + reason : str
+    + visit : Visit
+    - history : list[str]
+    + is_active() : bool
+    + mark_completed() : None
+  }
+  class TimeSlot {
+    - start : datetime
+    - end : datetime
+    + duration_minutes() : int
+    + overlaps(other : TimeSlot) : bool
+  }
+  class AvailableSlot {
+    + doctor : Doctor
+    + slot : TimeSlot
+  }
+}
+
+' ============================== EMR =================================
+package "emr.py" as PEmr {
+  class MedicalRecord {
+    - record_id : str
+    - patient : Patient
+    - visits : dict[str, Visit]
+    + add_visit(v : Visit) : None
+    + get_visit(visit_id, requester : Person) : Visit
+    + visits(requester : Person) : list[Visit]
+  }
+  class AccessPolicy <<utility>> {
+    + {static} can_view(requester : Person, record : MedicalRecord) : bool
+  }
+  class Visit {
+    - visit_id : str
+    - appointment : Appointment
+    - vitals : Vitals
+    - diagnoses : list[Diagnosis]
+    - notes : list[ClinicalNote]
+    - attachments : list[Attachment]
+    - prescriptions : list[Prescription]
+    - lab_orders : list[LabOrder]
+    + record_vitals(v : Vitals, by : Staff) : None
+    + add_diagnosis(d : Diagnosis) : None
+    + add_note(text, author : Staff) : None
+    + add_attachment(a : Attachment) : None
+    + close() : None
+    + summary() : str
+  }
+  class Vitals {
+    + temperature_c : float
+    + systolic_bp : int
+    + diastolic_bp : int
+    + pulse_bpm : int
+    + weight_kg : float
+    + height_cm : float
+    + bmi() : float
+  }
+  class Diagnosis {
+    + code : str
+    + description : str
+    + is_primary : bool
+  }
+  class ClinicalNote {
+    + text : str
+    + author : Staff
+    + written_at : datetime
+  }
+  class Attachment {
+    + file_name : str
+    + file_type : str
+    - content : bytes
+    + size_bytes() : int
+  }
+}
+
+' ===================== Prescriptions & Lab ==========================
+package "prescriptions.py" as PRx {
+  class Prescription {
+    - prescription_id : str
+    - visit : Visit
+    - doctor : Doctor
+    - items : list[PrescriptionItem]
+    - status : PrescriptionStatus
+    + add_item(item : PrescriptionItem) : None
+    + send_to_pharmacy(p : Pharmacy) : None
+    + mark_dispensed(by : Pharmacist) : None
+    + total_cost() : Decimal
+  }
+  class PrescriptionItem {
+    + medication : Medication
+    + dosage : str
+    + directions : str
+    + quantity : int
+    + line_total() : Decimal
+  }
+  class Medication {
+    + name : str
+    + strength : str
+    + form : str
+    + unit_price : Decimal
+  }
+}
+
+package "lab.py" as PLab {
+  class LabOrder {
+    - order_id : str
+    - visit : Visit
+    - test : LabTest
+    - ordered_by : Doctor
+    - status : LabOrderStatus
+    - result : LabResult
+    + collect_sample() : None
+    + record_result(r : LabResult, patient, visit_id) : None
+    + cancel() : None
+  }
+  class LabTest {
+    + code : str
+    + name : str
+    + specimen : str
+    + price : Decimal
+  }
+  class LabResult {
+    + values : dict[str, str]
+    + interpretation : str
+    + is_abnormal : bool
+    + recorded_by : Staff
+  }
+}
+
+' ============================ Billing ===============================
+package "billing.py" as PBill {
+  class BillingService {
+    - invoices : dict[str, Invoice]
+    + generate_invoice(v : Visit, other_services) : Invoice
+  }
+  class Invoice {
+    - invoice_id : str
+    - visit : Visit
+    - items : list[InvoiceLineItem]
+    - payments : list[Payment]
+    + policy : InsurancePolicy
+    - insurer_share : Decimal
+    - co_pay : Decimal
+    + total() : Decimal
+    + patient_share() : Decimal
+    + balance_due() : Decimal
+    + status() : InvoiceStatus
+    + apply_insurance(p : InsurancePolicy) : Decimal
+  }
+  class InvoiceLineItem {
+    + description : str
+    + category : ChargeCategory
+    + quantity : int
+    + unit_price : Decimal
+    + total() : Decimal
+  }
+  class InsurancePolicy {
+    + provider : str
+    - policy_number : str
+    + coverage_percent : Decimal
+    + co_pay : Decimal
+    + annual_limit : Decimal
+    + valid_until : date
+    + is_valid(on : date) : bool
+    + covers(c : ChargeCategory) : bool
+    + record_claim(amount : Decimal) : None
+  }
+  abstract class Payment {
+    - payment_id : str
+    - amount : Decimal
+    - status : PaymentStatus
+    + reference : str
+    + process(invoice : Invoice) : Payment
+    # {abstract} _authorise(invoice : Invoice) : str
+  }
+  class CardPayment {
+    - card_number : str
+    + card_holder : str
+    + expiry : str
+    + {static} luhn_valid(number : str) : bool
+    # _authorise(invoice : Invoice) : str
+  }
+  class MobileWalletPayment {
+    + provider : str
+    + phone_number : str
+    # _authorise(invoice : Invoice) : str
+  }
+  class InsuranceClaimPayment {
+    + policy : InsurancePolicy
+    + claim_number : str
+    # _authorise(invoice : Invoice) : str
+  }
+}
+
+' =========================== Enumerations ===========================
+package "enums.py" as PEnum {
+  enum StaffRole {
+    DOCTOR
+    NURSE
+    LAB_TECHNICIAN
+    PHARMACIST
+    RECEPTIONIST
+  }
+  enum AppointmentStatus {
+    BOOKED
+    RESCHEDULED
+    CANCELLED
+    COMPLETED
+  }
+  enum PrescriptionStatus {
+    DRAFT
+    SENT_TO_PHARMACY
+    DISPENSED
+  }
+  enum LabOrderStatus {
+    ORDERED
+    SAMPLE_COLLECTED
+    COMPLETED
+    CANCELLED
+  }
+  enum InvoiceStatus {
+    UNPAID
+    PARTIALLY_PAID
+    PAID
+  }
+  enum PaymentStatus {
+    PENDING
+    SUCCESSFUL
+    FAILED
+  }
+  enum ChargeCategory {
+    CONSULTATION
+    LAB
+    MEDICATION
+    OTHER
+  }
+}
+
+' =========================== Inheritance ============================
+Department <|-- Laboratory
+Department <|-- Pharmacy
+Person <|-- Patient
+Person <|-- Staff
+Staff <|-- Doctor
+Staff <|-- Nurse
+Staff <|-- LabTechnician
+Staff <|-- Pharmacist
+Payment <|-- CardPayment
+Payment <|-- MobileWalletPayment
+Payment <|-- InsuranceClaimPayment
+
+' =========================== Composition ============================
+Clinic "1" *-- "1..*" Department : owns >
+Clinic "1" *-- "1" ContactInfo
+Clinic "1" *-- "1" AppointmentScheduler
+Clinic "1" *-- "1" BillingService
+Department "1" *-- "1" WeeklyHours : operating hours
+Staff "1" *-- "1" WeeklyHours : working hours
+Patient "1" *-- "1" MedicalRecord
+Patient "1" *-- "0..1" EmergencyContact
+MedicalRecord "1" *-- "0..*" Visit
+Visit "1" *-- "0..1" Vitals
+Visit "1" *-- "0..*" Diagnosis
+Visit "1" *-- "0..*" ClinicalNote
+Visit "1" *-- "0..*" Attachment
+Appointment "1" *-- "1" TimeSlot
+Prescription "1" *-- "1..*" PrescriptionItem
+LabOrder "1" *-- "0..1" LabResult
+Invoice "1" *-- "1..*" InvoiceLineItem
+
+' =========================== Aggregation ============================
+Clinic "1" o-- "0..*" Patient : registers >
+Department "0..1" o-- "0..*" Staff : employs >
+AppointmentScheduler "1" o-- "0..*" Appointment : manages >
+BillingService "1" o-- "0..*" Invoice
+Invoice "1" o-- "0..*" Payment : settled by >
+Laboratory "1" o-- "0..*" LabTest : catalogue >
+Pharmacy "1" o-- "0..*" Medication : formulary >
+
+' =========================== Association ============================
+Clinic --> "1" Address
+Patient "1" --> "0..1" UserAccount : logs in with >
+Patient "0..*" --> "0..1" InsurancePolicy : insured by >
+Appointment "0..*" --> "1" Patient : for >
+Appointment "0..*" --> "1" Doctor : with >
+Appointment "1" -- "0..1" Visit : results in >
+Visit "1" --> "0..*" Prescription : issues >
+Visit "1" --> "0..*" LabOrder : requests >
+Prescription "0..*" --> "0..1" Pharmacy : sent to >
+PrescriptionItem "0..*" --> "1" Medication
+LabOrder "0..*" --> "1" LabTest
+Invoice "0..1" --> "1" Visit : bills >
+Invoice "0..*" --> "0..1" InsurancePolicy : applies >
+AvailableSlot --> "1" Doctor
+AvailableSlot --> "1" TimeSlot
+
+' =========================== Dependency =============================
+AppointmentScheduler ..> AvailableSlot : <<creates>>
+MedicalRecord ..> AccessPolicy : <<uses>>
+Doctor ..> Prescription : <<creates>>
+Doctor ..> LabOrder : <<creates>>
+
+' enum usage (dependencies)
+Staff ..> StaffRole
+Appointment ..> AppointmentStatus
+Prescription ..> PrescriptionStatus
+LabOrder ..> LabOrderStatus
+Invoice ..> InvoiceStatus
+Payment ..> PaymentStatus
+InvoiceLineItem ..> ChargeCategory
+
+@enduml
