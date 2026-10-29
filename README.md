@@ -1,5 +1,14 @@
 # Royal Care Clinic – Healthcare Clinic Management System
 
+## Attribution
+
+This project was developed by:
+
+- **Ayesha Thani Mohammad Bin Hendi Almheiri**
+- **Noora Adel Mohamed Abdulla Baqer**
+
+---
+
 An object-oriented Python application for Royal Care Clinic, a modern outpatient
 clinic. It manages the clinic profile and departments, patients, doctors and
 staff, appointment scheduling, electronic medical records (EMR), prescriptions,
@@ -27,7 +36,6 @@ against the correct patient and visit.
 - [Testing](#testing)
 - [UML class diagram](#uml-class-diagram)
 - [Assumptions](#assumptions)
-- [Attribution](#attribution)
 
 ---
 
@@ -264,14 +272,3 @@ java -jar plantuml.jar -tsvg docs/uml_class_diagram.puml
 - Any staff member may view visit summaries. Patients may view only their own records.
 - Payment gateways are simulated: card numbers are checked with the Luhn
   algorithm and the expiry date is checked.
-
----
-
-## Attribution
-
-This project was developed by:
-
-| Contributor |
-|-------------|
-| **Ayesha Thani Mohammad Bin Hendi Almheiri** |
-| **Noora Adel Mohamed Abdulla Baqer** |
