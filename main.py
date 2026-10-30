@@ -3,7 +3,7 @@ main.py
 =======
 End-to-end demonstration of the Royal Care Clinic Management System.
 
-Scenario (from the assignment brief)
+Scenario
 ------------------------------------
 1. Create patient Aliyah and doctor Dr. Brown (General Practitioner).
 2. Aliyah searches for and books a 30-minute appointment next Monday.
@@ -12,10 +12,8 @@ Scenario (from the assignment brief)
 4. Lab results are uploaded, the invoice is generated with insurance
    applied, and payment is completed.
 
-The script also shows rescheduling, cancellation, access control and the
+Do rescheduling, cancellation, access control and the
 patient downloading a visit summary.
-
-Run with:  python main.py
 """
 
 from datetime import date, datetime, time, timedelta
